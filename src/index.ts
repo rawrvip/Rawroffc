@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express, { type Request, type Response } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import path from 'node:path';
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -38,6 +39,8 @@ app.use(express.json({
   },
 }));
 
+app.use(express.static(path.join(__dirname, '../public')));
+
 function safeEqual(left: string, right: string): boolean {
   const leftBuffer = Buffer.from(left);
   const rightBuffer = Buffer.from(right);
@@ -49,7 +52,7 @@ function requireApiKey(request: Request, response: Response, next: () => void): 
   const suppliedKey = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
 
   if (!apiKey || !safeEqual(suppliedKey, apiKey)) {
-    response.status(401).json({ error: 'Unauthorized' });
+    response.status(401).json({ error: 'API key salah atau belum diisi.' });
     return;
   }
 
@@ -100,7 +103,6 @@ app.post('/webhook', (request: RequestWithRawBody, response) => {
   for (const entry of body.entry ?? []) {
     for (const change of entry.changes ?? []) {
       for (const message of change.value?.messages ?? []) {
-        // Avoid logging message contents or credentials.
         console.log('Incoming WhatsApp message', {
           from: message.from,
           type: message.type,
@@ -124,12 +126,12 @@ app.post('/messages', requireApiKey, async (request, response) => {
   const { to, text } = request.body as { to?: unknown; text?: unknown };
 
   if (typeof to !== 'string' || !/^\+?\d{7,15}$/.test(to)) {
-    response.status(400).json({ error: 'to must be a phone number in international format' });
+    response.status(400).json({ error: 'Nomor tujuan harus format internasional, misalnya 6281234567890.' });
     return;
   }
 
   if (typeof text !== 'string' || text.trim().length === 0 || text.length > 4096) {
-    response.status(400).json({ error: 'text must contain 1–4096 characters' });
+    response.status(400).json({ error: 'Pesan harus berisi 1–4096 karakter.' });
     return;
   }
 
@@ -156,7 +158,7 @@ app.post('/messages', requireApiKey, async (request, response) => {
     response.status(apiResponse.status).json(result);
   } catch (error) {
     console.error('WhatsApp API request failed', error);
-    response.status(502).json({ error: 'Could not reach the WhatsApp API' });
+    response.status(502).json({ error: 'Tidak bisa terhubung ke WhatsApp API.' });
   }
 });
 

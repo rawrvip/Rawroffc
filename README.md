@@ -1,45 +1,23 @@
-# Rawroffc WhatsApp Cloud API starter
+# Rawroffc WhatsApp Cloud API
 
-Starter server for Meta's **official WhatsApp Cloud API**, built with Node.js and TypeScript. This is not a Baileys clone and does not implement WhatsApp's private Web protocol.
+A small Indonesian web app for sending text messages through Meta's **official WhatsApp Cloud API**. It includes a browser interface, a protected send endpoint, and a signed webhook receiver. It does not implement Baileys or WhatsApp's private Web protocol.
 
-## Run locally
+## Deploy without using a terminal
 
-Requirements: Node.js 20 or newer.
+1. Create/configure a Meta developer app with WhatsApp Cloud API and a WhatsApp Business phone number. Meta credentials are required; uploading code alone cannot connect a WhatsApp number.
+2. In Render, choose **New → Blueprint**, connect this GitHub repository, and deploy. Render reads `render.yaml` and asks you to provide the secret environment variables.
+3. Set `META_ACCESS_TOKEN`, `META_PHONE_NUMBER_ID`, `META_VERIFY_TOKEN`, `META_APP_SECRET`, and `APP_API_KEY` in Render. Choose a long, random value for `APP_API_KEY`; do not share it publicly.
+4. Open the deployed site's URL. Enter the server API key, recipient's international phone number, and message, then press **Kirim pesan**.
+5. For incoming-message webhooks, configure the deployed URL plus `/webhook` in Meta's developer dashboard and subscribe to the WhatsApp message webhook field. Use the same `META_VERIFY_TOKEN` configured on Render.
 
-```bash
-npm install
-cp .env.example .env
-```
+The app's web form does not store the API key in the browser. The server still needs the Meta credentials configured by its owner. Meta may require approved templates for business-initiated conversations; follow WhatsApp's opt-in and messaging rules.
 
-Fill in `.env` with credentials from your Meta developer app and WhatsApp Business account, then run:
+## What's included
 
-```bash
-npm run dev
-```
+- `GET /` — browser form for sending a text message.
+- `GET /health` — deployment health check.
+- `GET /webhook` — Meta webhook verification.
+- `POST /webhook` — validates Meta's `X-Hub-Signature-256` signature.
+- `POST /messages` — protected message-send API.
 
-Build and run the compiled server:
-
-```bash
-npm run build
-npm start
-```
-
-The server exits on startup if required environment variables are missing. Never commit `.env` or share access tokens.
-
-## Endpoints
-
-- `GET /health` — health check.
-- `GET /webhook` — Meta webhook verification. Configure this URL in the Meta developer dashboard and use the same `META_VERIFY_TOKEN` value.
-- `POST /webhook` — receives webhook events and verifies `X-Hub-Signature-256` with `META_APP_SECRET`. It logs sender/type/status metadata, not message bodies.
-- `POST /messages` — sends a text message via the official Cloud API. Requires `Authorization: Bearer <APP_API_KEY>`.
-
-Example send request:
-
-```bash
-curl -X POST http://localhost:3000/messages \
-  -H 'Authorization: Bearer YOUR_APP_API_KEY' \
-  -H 'Content-Type: application/json' \
-  -d '{"to":"6281234567890","text":"Halo!"}'
-```
-
-For production, deploy behind HTTPS, configure the webhook subscription in Meta, use secure secret storage, and comply with WhatsApp's opt-in and messaging policies. The Graph API version is configurable with `META_GRAPH_API_VERSION`; use a version currently supported by Meta.
+The Graph API version is configurable with `META_GRAPH_API_VERSION`; use a version currently supported by Meta. Never commit secrets or place them in the repository.
